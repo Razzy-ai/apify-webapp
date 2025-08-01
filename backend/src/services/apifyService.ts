@@ -1,34 +1,13 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
 import axios from 'axios';
 
 const APIFY_API_BASE = 'https://api.apify.com/v2';
-const APIFY_TOKEN = process.env.APIFY_API_TOKEN;
-
-if (!APIFY_TOKEN) {
-  console.error("APIFY_API_TOKEN is missing in .env");
-  process.exit(1);
-}
-
-console.log('Loaded APIFY token:', APIFY_TOKEN);
-
-// Create axios instance without auth header
-const axiosInstance = axios.create({
-  baseURL: APIFY_API_BASE,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
 
 // 1. Get list of actors
-export const getActors = async () => {
+export const getActors = async (token: string) => {
   try {
-    console.log('Calling Apify with token:', APIFY_TOKEN);
-    const response = await axiosInstance.get('/acts', {
-      params: { token: APIFY_TOKEN },
+    const response = await axios.get(`${APIFY_API_BASE}/acts`, {
+      params: { token },
     });
-    console.log('Apify response:', response.data);
     return response.data.data;
   } catch (error: any) {
     console.error('Apify error:', error.response?.data || error.message);
@@ -37,10 +16,10 @@ export const getActors = async () => {
 };
 
 // 2. Get actor input schema
-export const getActorInputSchema = async (actorId: string) => {
- try {
-    const response = await axiosInstance.get(`/acts/${actorId}`, {
-      params: { token: APIFY_TOKEN },
+export const getActorInputSchema = async (actorId: string, token: string) => {
+  try {
+    const response = await axios.get(`${APIFY_API_BASE}/acts/${actorId}`, {
+      params: { token },
     });
 
     const actorData = response.data.data;
@@ -62,12 +41,12 @@ export const getActorInputSchema = async (actorId: string) => {
 };
 
 // 3. Start an actor with input
-export const startActor = async (actorId: string, input: any) => {
+export const startActor = async (actorId: string, input: any, token: string) => {
   try {
-    const response = await axiosInstance.post(
-      `/acts/${actorId}/runs`,
+    const response = await axios.post(
+      `${APIFY_API_BASE}/acts/${actorId}/runs`,
       { input },
-      { params: { token: APIFY_TOKEN } }
+      { params: { token } }
     );
     return response.data.data;
   } catch (error: any) {
@@ -77,12 +56,25 @@ export const startActor = async (actorId: string, input: any) => {
 };
 
 // 4. Fetch run result by runId
-export const fetchRunResult = async (runId: string) => {
+export const fetchRunResult = async (runId: string, token: string) => {
   try {
-    const response = await axiosInstance.get(`/actor-runs/${runId}/dataset/items`, {
-      params: { token: APIFY_TOKEN },
+    const response = await axios.get(`${APIFY_API_BASE}/actor-runs/${runId}/dataset/items`, {
+      params: { token },
     });
     return response.data;
+  } catch (error: any) {
+    console.error('Apify error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// 5. Get run status
+export const getRunStatus = async (runId: string, token: string) => {
+  try {
+    const response = await axios.get(`${APIFY_API_BASE}/actor-runs/${runId}`, {
+      params: { token },
+    });
+    return response.data.data; // includes status, finishedAt, etc.
   } catch (error: any) {
     console.error('Apify error:', error.response?.data || error.message);
     throw error;
